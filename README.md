@@ -1,7 +1,6 @@
 # FSND P7 - Linux Server Configuration
 Linux Server
 
-![](https://github.com/Dongs7/img/blob/master/p6.png)
 
 ## Requirements
 * AWS Lightsail

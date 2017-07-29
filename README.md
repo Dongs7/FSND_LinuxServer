@@ -12,9 +12,9 @@ Linux Server
 
 Created a static IP and attached to the instance
 
-IP Address : 35.167.201.154
-URL : http://ec2-35-167-201-154.us-west-2.compute.amazonaws.com
-SSH port : 2200
+- IP Address : 35.167.201.154
+- URL : http://ec2-35-167-201-154.us-west-2.compute.amazonaws.com
+- SSH port : 2200
 
 ### Update packages
 
@@ -125,7 +125,7 @@ Change timezone to UTC:
  $ sudo timedatectl set-timezone UTC
 ```
 
-### Install Apache and Python mod_wsgi
+### Install Apache/Python mod_wsgi and PostgreSQL
 
 - Install Apache
 ```
@@ -136,3 +136,156 @@ Change timezone to UTC:
 ```
  $ sudo apt-get install libapache2-mod-wsgi
 ```
+Restart apache service to get mod-wsgi to work:
+```
+ $ sudo apache2ctl restart
+```
+
+- Install PostgreSQL
+```
+ $ sudo apt-get install postgresql postgresql-contrib
+```
+
+### Configure PostgreSQL
+
+- Create a new database user named catalog and give limited permissions
+```
+ $ sudo -u postgres createuser -P catalog
+ $ sudo -u postgres createdb -O catalog catalog
+```
+
+
+### Catalog App
+
+- Clone the catalog app from the previous project and install required packages.
+
+Installed packages:
+
+Python 2.7.12
+Flask
+SQLalchemy
+Flask-Login
+Flask-Bootstrap
+Flask-Uploads
+Flask-WTF
+OAuth2Client
+Twitter Bootstrap
+Requests
+passlib
+bcrypt
+
+### Setup mod_wsgi for the App
+
+Following is the app structure:
+
+[var]
+|-----[www]
+|----------[app]
+|---------------[catalog]
+|------------------------[instance]         - contains app config files  
+|------------------------[project]    
+|--------------------------------[api]      - contains api related files  
+|--------------------------------[catalog]  - contains catalog related files  
+|--------------------------------[template] - contains html files  
+|--------------------------------[users]    - contains user related files  
+|--------------------------------[db]       - contains model, db files  
+|--------------------------------[static]   - contains static files (css/js/images..)/ upload folder
+|------------------------__init__.py        - contains run script  
+|----------------catalog.wsgi               - wsgi file for this application
+
+- In order to make this app run, we create the catalog.wsgi file:
+```
+# catalog.wsgi
+
+#!/usr/bin/python
+import sys
+import logging
+logging.basicConfig(stream=sys.stderr)
+sys.path.insert(0,"/var/www/app/catalog/")
+
+from project import app as application
+
+```
+- Also, we need to modify few lines of code to connect database properly
+Since we are using PostgreSQL, we need to change:
+```
+engine = create_engine('sqlite:///catalog.db')
+```
+
+from models.py and db_helper.py in DB folder to:
+
+```
+engine = create_engine('postgresql://catalog:<password>@localhost/catalog')
+```
+
+so that we can access database using PostgreSQL.
+
+### Google OAuth2 Setting
+
+- Since the app is supporting Google OAuth2 authentication,
+'Authorized javascript origin' and 'redirect url' need to be updated properly.
+The Lightsail url can be used for both entries.
+
+
+### Apache2 Configure
+
+A vhost configuration needs to be created to serve the app properly.
+The file needs needs to be created in '/etc/apache2/sites-available' folder.
+The config file for this app is 'catalog.conf'
+
+Inside of the config file, we have:
+```
+<VirtualHost *:80>
+    ServerAdmin test@site.com
+
+    # Our server name           
+    ServerName http://35.167.201.154/
+    ServerAlias
+
+    # Create error/access logs in '/var/www/app/log/' folder
+    ErrorLog /var/www/app/logs/error.log
+    CustomLog /var/www/app/logs/access.log combined
+
+    # Reload service whenever this file is modified
+    WSGIScriptReloading On
+
+    # This file executes when users connect the app using the ip or url
+    #WSGIScriptAlias / /var/www/app/catalog/catalog.wsgi
+
+    # This app runs under www-data user in www-data group
+    WSGIDaemonProcess catalog user=www-data group=www-data threads=5
+    WSGIProcessGroup catalog
+    WSGIScriptAlias / /var/www/app/catalog.wsgi
+
+    <Directory /var/www/app/>
+        Require all granted
+    </Directory>
+
+    # Setting an alias for the static folders
+    Alias /static/ /var/www/app/catalog/project/static/
+
+    <Directory /var/www/app/catalog/project/static/>
+	     Require all granted
+    </Directory>
+
+    <DirectoryMatch /\.git/>
+        AllowOverride None
+        Require all denied
+    </DirectoryMatch>
+</VirtualHost>
+```
+
+After the above steps, use following code to make our app enable:
+```
+ $ sudo a2ensite catalog
+```
+Then, we need to restart apache service to apply any changes:
+```
+ $ sudo apache2ctl restart
+```
+
+Now users can connect the application using
+- http://35.167.201.154/
+- http://ec2-35-167-201-154.us-west-2.compute.amazonaws.com
+
+I just initiated category list. Logged in users can add, edit or delete their items.

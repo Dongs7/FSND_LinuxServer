@@ -12,9 +12,9 @@ Linux Server
 
 Created a static IP and attached to the instance
 
-- IP Address : 35.167.201.154
-- URL : http://ec2-35-167-201-154.us-west-2.compute.amazonaws.com
-- SSH port : 2200
+- IP Address : n/a
+- URL : n/a
+- SSH port : n/a
 
 ### Update packages
 
@@ -239,7 +239,7 @@ Inside of the config file, we have:
     ServerAdmin test@site.com
 
     # Our server name           
-    ServerName http://35.167.201.154/
+    ServerName n/a
     ServerAlias
 
     # Create error/access logs in '/var/www/app/log/' folder
@@ -285,7 +285,6 @@ Then, we need to restart apache service to apply any changes:
 ```
 
 Now users can connect the application using
-- http://35.167.201.154/
-- http://ec2-35-167-201-154.us-west-2.compute.amazonaws.com
+- ......
 
-I just initiated category list. Logged in users can add, edit or delete their items.
+Server Closed
